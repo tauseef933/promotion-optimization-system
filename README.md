@@ -96,3 +96,7 @@ This project is licensed under the MIT License — see the LICENSE
 ## 🙌 Acknowledgment
 
 This project was conducted at NUST University as part of a technical development initiative focused on AI-driven business analytics.
+
+GitHub Repository: https://github.com/tauseef933/promotion-optimization-system
+
+Developer: Tauseef Iqbal
