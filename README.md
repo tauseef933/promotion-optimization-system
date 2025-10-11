@@ -41,34 +41,30 @@ This project demonstrates the fusion of **artificial intelligence**, **data visu
 
 📊 Data Input → 🔍 Processing Layer → 📈 Analytics Engine
 ↓ ↓ ↓
+
 items.csv Category Analysis ROI + Uplift Charts
 ↓ ↓ ↓
+
 🧠 Recommendation Engine → 💬 AI Chat Assistant → 🎨 Gradio Dashboard
 
 ---
 
-## 📁 Repository Structure
 
-promotion-optimization-system/
-├── pictures/ # Screenshots
-├── promotion_optimization_updated.py # Main Python source code
-├── promotion_optimization_updated.ipynb # Notebook version
-├── items.csv # Sample dataset
-├── Promotion_Optimization_System_Final_Report_NUST.pdf # Full project report
-├── .gitignore / .gitattributes / LICENSE # Configuration and license files
-└── README.md # Project documentation
+## 📊 Key Features
+
+✅ Smart Promotion Recommendations – Category-wise strategy suggestions
+
+✅ Analytics Dashboard – Interactive ROI & uplift charts
+
+✅ AI Chat Assistant – Intelligent Q&A about promotions
+
+✅ Visual Insights – Category trends, timing advantages, customer behavior
+
+✅ Professional Report – Included PDF documenting system details
 
 ---
 
-📊 Key Features
-
-✅ Smart Promotion Recommendations – Category-wise strategy suggestions
-✅ Analytics Dashboard – Interactive ROI & uplift charts
-✅ AI Chat Assistant – Intelligent Q&A about promotions
-✅ Visual Insights – Category trends, timing advantages, customer behavior
-✅ Professional Report – Included PDF documenting system details
-
-📈 Results
+## 📈 Results
 
 Generates actionable recommendations with predicted uplift percentages
 
@@ -78,7 +74,9 @@ Visualizes opportunity calendars and ROI metrics
 
 Provides interactive, real-time promotion planning assistance
 
-🚀 Future Enhancements
+---
+
+## 🚀 Future Enhancements
 
 Integrate with real-time sales and inventory APIs
 
@@ -88,11 +86,13 @@ Deploy as a full cloud-hosted web app
 
 Expand to multi-store and regional analytics
 
-🧾 License
+---
+
+## 🧾 License
 
 This project is licensed under the MIT License — see the LICENSE
  file for details.
 
-🙌 Acknowledgment
+## 🙌 Acknowledgment
 
 This project was conducted at NUST University as part of a technical development initiative focused on AI-driven business analytics.
