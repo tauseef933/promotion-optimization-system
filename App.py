@@ -82,6 +82,56 @@ st.markdown("""
         font-weight: 700;
     }
     div[data-testid="stMetricValue"] { font-size: 1.6rem; }
+
+    /* ── Chat interface ── */
+    .chat-wrapper { display: flex; flex-direction: column; gap: 0; padding-bottom: 0.5rem; }
+    .chat-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 14px; }
+    .chat-row.user { flex-direction: row-reverse; }
+    .chat-row.bot  { flex-direction: row; }
+
+    .avatar {
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
+        color: white; letter-spacing: 0.02em;
+    }
+    .avatar.user { background: #2a5298; }
+    .avatar.bot  { background: #1a1a2e; }
+
+    .bubble {
+        max-width: 72%; padding: 0.7rem 1rem;
+        border-radius: 14px; font-size: 0.9rem; line-height: 1.55;
+    }
+    .bubble.user {
+        background: #2a5298; color: white;
+        border-bottom-right-radius: 4px;
+    }
+    .bubble.bot {
+        background: #f4f6fb; color: #1a1a2e;
+        border: 1px solid #e2e6f0; border-bottom-left-radius: 4px;
+    }
+    .bubble.bot strong { color: #1e3c72; }
+
+    .chat-meta { font-size: 0.72rem; color: #aab0c0; margin-top: 4px; padding: 0 4px; }
+    .chat-meta.user { text-align: right; }
+
+    .provider-bar {
+        display: flex; align-items: center; gap: 8px;
+        padding: 0.45rem 0.9rem;
+        background: #f4f6fb; border: 1px solid #e2e6f0;
+        border-radius: 8px; margin-bottom: 1rem;
+        font-size: 0.82rem; color: #555;
+    }
+    .provider-dot { width: 8px; height: 8px; border-radius: 50%; background: #27ae60; flex-shrink: 0; }
+    .provider-dot.off { background: #ccc; }
+
+    .empty-chat {
+        text-align: center; padding: 2.5rem 1rem;
+        color: #9aa0b0; font-size: 0.92rem;
+        border: 1.5px dashed #dde1eb; border-radius: 12px; margin-bottom: 1.2rem;
+    }
+    .empty-chat p { margin: 0.3rem 0; }
+    .empty-chat .hint { font-size: 0.82rem; margin-top: 0.6rem; color: #b0b8c8; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -503,21 +553,17 @@ class PromotionOptimizationSystem:
 # ──────────────────────────────────────────────────────────────────────────────
 
 _SYSTEM_PROMPT = """\
-You are a senior retail promotion strategist with deep expertise in grocery and
-consumer-goods merchandising.
+You are a senior retail promotion strategist. Answer every question using ONLY the
+data in the RETRIEVED CATALOG CONTEXT provided. Never invent figures.
 
-You are provided with RETRIEVED CATALOG CONTEXT — live statistics and business-rule
-insights extracted from the client's actual product database via a RAG pipeline.
-Ground every answer in this data.  Do not invent figures; if something is not in the
-context, say so honestly and offer a general principle instead.
-
-When recommending promotions:
-- Quote the exact uplift percentages and SKU counts from the context.
-- Match promotion mechanics (BOGO, Flash Sale, Bundle, etc.) to the category profile.
-- Align timing suggestions with the seasonal and weekly patterns described.
-- Keep answers clear, structured, and actionable — a busy category manager should
-  be able to act on your advice immediately.
-- Write in a direct, professional tone without excessive formatting or emojis.
+Response rules — follow these strictly:
+- Maximum 120 words per answer.
+- Lead with the direct answer or recommendation in the first sentence.
+- Use plain numbered or bulleted lines when listing more than two items.
+- Quote exact uplift percentages and SKU counts from the context.
+- No emojis. No filler phrases. No lengthy preambles.
+- If the context does not cover the question, say so in one sentence and
+  give one general best-practice principle.
 """
 
 # Each provider entry: (display_name, base_url, model_id)
@@ -827,6 +873,28 @@ def render_analytics(system: PromotionOptimizationSystem) -> None:
     st.dataframe(tbl, use_container_width=True, hide_index=True)
 
 
+def _chat_bubble(role: str, text: str, provider: str = "", ts: str = "") -> str:
+    """Return an HTML chat bubble for user or assistant turns."""
+    is_user  = role == "user"
+    cls      = "user" if is_user else "bot"
+    initials = "You" if is_user else "AI"
+    meta     = ts if is_user else (f"via {provider}" if provider else "")
+
+    # Escape special HTML characters in the message text
+    import html as _html
+    safe = _html.escape(text).replace("\n", "<br>")
+
+    meta_block = f"<div class='chat-meta {cls}'>{meta}</div>" if meta else ""
+    return f"""
+    <div class="chat-row {cls}">
+        <div class="avatar {cls}">{initials}</div>
+        <div>
+            <div class="bubble {cls}">{safe}</div>
+            {meta_block}
+        </div>
+    </div>"""
+
+
 def render_chatbot(
     system: PromotionOptimizationSystem,
     groq_key: str,
@@ -838,73 +906,121 @@ def render_chatbot(
 
     if not groq_key and not gemini_key:
         st.info(
-            "Enter at least one API key in the sidebar to activate the assistant. "
+            "Enter at least one API key in the sidebar. "
             "Groq and Gemini are both free — adding both enables automatic failover."
         )
         return
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history: list[dict] = []
-
-    # Show which providers are armed
-    armed = []
-    if groq_key:   armed.append("Groq (primary)")
-    if gemini_key: armed.append("Gemini (secondary)")
-    st.caption(f"Active providers: {' → '.join(armed)}. Failover is automatic.")
+    if "last_provider" not in st.session_state:
+        st.session_state.last_provider: str = ""
 
     chain = ProviderFallbackChain(groq_key=groq_key, gemini_key=gemini_key)
 
-    # Render existing conversation
-    for turn in st.session_state.chat_history:
-        with st.chat_message("user"):
-            st.write(turn["user"])
-        with st.chat_message("assistant"):
-            st.write(turn["assistant"])
+    # ── Provider status bar ──────────────────────────────────────────────────
+    groq_dot   = "provider-dot"      if groq_key   else "provider-dot off"
+    gemini_dot = "provider-dot"      if gemini_key else "provider-dot off"
+    active_txt = " &rarr; ".join(
+        (["Groq"] if groq_key else []) + (["Gemini"] if gemini_key else [])
+    )
+    st.markdown(f"""
+    <div class="provider-bar">
+        <span class="{groq_dot}"></span> Groq
+        &nbsp;&nbsp;
+        <span class="{gemini_dot}"></span> Gemini
+        &nbsp;&nbsp;&mdash;&nbsp;&nbsp;
+        Active chain: <strong>{active_txt}</strong>
+        &nbsp;&nbsp;&mdash;&nbsp;&nbsp;
+        Failover is automatic
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Quick-start buttons
-    st.write("Quick questions:")
-    b1, b2, b3, b4 = st.columns(4)
+    # ── Conversation window ──────────────────────────────────────────────────
+    history = st.session_state.chat_history
+
+    if not history:
+        st.markdown("""
+        <div class="empty-chat">
+            <p>No messages yet.</p>
+            <p class="hint">Use the quick-question buttons below or type your own query.</p>
+        </div>""", unsafe_allow_html=True)
+    else:
+        bubbles_html = "<div class='chat-wrapper'>"
+        for turn in history:
+            ts = turn.get("ts", "")
+            bubbles_html += _chat_bubble("user",      turn["user"],      ts=ts)
+            bubbles_html += _chat_bubble("assistant", turn["assistant"],
+                                         provider=turn.get("provider", ""), ts=ts)
+        bubbles_html += "</div>"
+        st.markdown(bubbles_html, unsafe_allow_html=True)
+
+    st.markdown("<hr style='border:none;border-top:1px solid #eef0f5;margin:0.4rem 0 1rem 0'>",
+                unsafe_allow_html=True)
+
+    # ── Quick-question buttons ───────────────────────────────────────────────
+    st.caption("Quick questions")
+    c1, c2, c3, c4 = st.columns(4)
     quick_q: Optional[str] = None
-    if b1.button("Which categories to prioritise?",  use_container_width=True):
-        quick_q = "Which product categories should I prioritise for promotions this week, and why?"
-    if b2.button("Highest uplift opportunities",     use_container_width=True):
-        quick_q = "Show me the categories with the highest expected sales uplift and the promotion types that achieve them."
-    if b3.button("Weekend promotion plan",           use_container_width=True):
-        quick_q = "Give me a detailed weekend promotion plan for the top three categories."
-    if b4.button("Month-end strategy",               use_container_width=True):
-        quick_q = "What is the optimal promotion strategy for the end-of-month period?"
+    if c1.button("Top categories",        use_container_width=True):
+        quick_q = "Which categories should I prioritise for promotions this week and why?"
+    if c2.button("Highest uplift",         use_container_width=True):
+        quick_q = "Which categories have the highest expected uplift and what promotion type achieves it?"
+    if c3.button("Weekend plan",           use_container_width=True):
+        quick_q = "Give me a weekend promotion plan for the top three categories."
+    if c4.button("Month-end strategy",     use_container_width=True):
+        quick_q = "What is the best promotion strategy for the end-of-month period?"
 
-    user_input = st.chat_input("Ask about promotions, category strategies, timing, ROI...")
+    # ── Chat input ───────────────────────────────────────────────────────────
+    user_input = st.chat_input("Ask about promotions, timing, ROI, category strategy...")
     query = quick_q or user_input
 
     if query:
-        with st.chat_message("user"):
-            st.write(query)
+        ts_now = datetime.now().strftime("%H:%M")
 
-        with st.chat_message("assistant"):
-            with st.spinner("Retrieving catalog context and generating response..."):
-                try:
-                    messages = build_messages(
-                        query, system.rag_system, st.session_state.chat_history
-                    )
-                    reply, provider_used = chain.complete(messages)
+        # Show the user bubble immediately
+        st.markdown(
+            "<div class='chat-wrapper'>"
+            + _chat_bubble("user", query, ts=ts_now)
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
-                    st.write(reply)
-                    st.caption(f"Answered by {provider_used}")
+        with st.spinner(""):
+            try:
+                messages      = build_messages(query, system.rag_system, history)
+                reply, prov   = chain.complete(messages, max_tokens=220, temperature=0.35)
 
-                    st.session_state.chat_history.append(
-                        {"user": query, "assistant": reply}
-                    )
+                st.markdown(
+                    "<div class='chat-wrapper'>"
+                    + _chat_bubble("assistant", reply, provider=prov, ts=ts_now)
+                    + "</div>",
+                    unsafe_allow_html=True,
+                )
 
-                except RuntimeError as e:
-                    st.error(str(e))
-                except Exception as e:
-                    st.error(f"Unexpected error: {e}")
+                st.session_state.chat_history.append({
+                    "user":     query,
+                    "assistant": reply,
+                    "provider": prov,
+                    "ts":       ts_now,
+                })
+                st.session_state.last_provider = prov
 
-    if st.session_state.chat_history:
-        if st.button("Clear conversation"):
-            st.session_state.chat_history = []
-            st.rerun()
+            except RuntimeError as exc:
+                st.error(str(exc))
+            except Exception as exc:
+                st.error(f"Unexpected error: {exc}")
+
+        st.rerun()
+
+    # ── Footer controls ──────────────────────────────────────────────────────
+    if history:
+        col_l, col_r = st.columns([5, 1])
+        with col_r:
+            if st.button("Clear chat", use_container_width=True):
+                st.session_state.chat_history  = []
+                st.session_state.last_provider = ""
+                st.rerun()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -1018,11 +1134,7 @@ def main() -> None:
         render_analytics(system)
 
     with tab_chat:
-        st.subheader("AI Promotion Assistant")
-        st.caption(
-            "Responses are grounded in your product catalog via a RAG pipeline. "
-            "The assistant retrieves relevant category statistics before every answer."
-        )
+        st.subheader("Promotion Assistant")
         render_chatbot(system, groq_key, gemini_key)
 
 
