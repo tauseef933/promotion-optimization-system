@@ -49,7 +49,6 @@ promotion-optimization-system/
 ├── items.csv                                   # Sample product catalog
 ├── requirements.txt                            # Python dependencies
 ├── promotion_optimization_updated.ipynb        # Earlier Gradio / Colab prototype
-├── Promotion_Optimization_System_Final_Report_NUST.pdf
 ├── LICENSE                                     # MIT
 └── README.md
 ```
@@ -157,14 +156,6 @@ openai>=1.30.0
 ```
 
 See [`requirements.txt`](requirements.txt).
-
----
-
-## Documentation
-
-A full project write-up is included:
-
-[`Promotion_Optimization_System_Final_Report_NUST.pdf`](Promotion_Optimization_System_Final_Report_NUST.pdf)
 
 ---
 
