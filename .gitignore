@@ -161,3 +161,12 @@ cython_debug/
 
 # Project reports (keep locally; do not push)
 Promotion_Optimization_System_Final_Report_NUST.pdf
+
+# ML data and trained artifacts (too large for git)
+data/
+models/*.txt
+models/*.joblib
+
+models/**/*.txt
+models/*.zip
+.streamlit/secrets.toml

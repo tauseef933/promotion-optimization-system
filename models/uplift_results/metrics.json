@@ -1,0 +1,135 @@
+{
+  "data": {
+    "source": "dunnhumby / 84.51 The Complete Journey (completejourney R package)",
+    "products": 8741,
+    "weeks": [
+      1,
+      52
+    ],
+    "train_weeks": [
+      9,
+      38
+    ],
+    "valid_weeks": [
+      39,
+      44
+    ],
+    "test_weeks": [
+      45,
+      52
+    ],
+    "rows": {
+      "train": 262230,
+      "valid": 52446,
+      "test": 69928
+    },
+    "promo_stores": 112,
+    "features": [
+      "lag_1",
+      "lag_2",
+      "lag_3",
+      "lag_4",
+      "mean_4w",
+      "mean_8w",
+      "mean_13w",
+      "sold_share_8w",
+      "display_share",
+      "mailer_share",
+      "promo_last_week",
+      "promo_weeks_8w",
+      "week",
+      "month",
+      "super_bowl",
+      "easter",
+      "memorial_day",
+      "july_4",
+      "labor_day",
+      "thanksgiving",
+      "christmas",
+      "department_code",
+      "category_code",
+      "private_label"
+    ]
+  },
+  "model": {
+    "type": "LightGBM",
+    "params": {
+      "objective": "regression",
+      "metric": "rmse",
+      "learning_rate": 0.03,
+      "num_leaves": 63,
+      "min_data_in_leaf": 100,
+      "feature_fraction": 0.8,
+      "bagging_fraction": 0.8,
+      "bagging_freq": 1,
+      "lambda_l2": 1.0,
+      "seed": 42,
+      "verbose": -1
+    },
+    "best_iteration": 559
+  },
+  "scores_test": {
+    "baseline_4w_mean": {
+      "rmsle": 0.6380613446235657,
+      "mae_units": 1.9440395832061768,
+      "wape": 0.6148837208747864,
+      "rmsle_promo_weeks": 0.6761493682861328,
+      "rmsle_normal_weeks": 0.6084522604942322
+    },
+    "lightgbm": {
+      "rmsle": 0.586839173059633,
+      "mae_units": 1.8229380687553385,
+      "wape": 0.5765803202898556,
+      "rmsle_promo_weeks": 0.6027807069182427,
+      "rmsle_normal_weeks": 0.574801704141013
+    }
+  },
+  "accuracy_levels": {
+    "product_week": {
+      "model": {
+        "accuracy": 0.4318185412031965,
+        "mae_units": 1.7963839117522151,
+        "rmsle": 0.5967269977673387
+      },
+      "baseline": {
+        "accuracy": 0.3642381429672241,
+        "mae_units": 2.0100486278533936,
+        "rmsle": 0.6495403051376343
+      }
+    },
+    "department_week": {
+      "model": {
+        "accuracy": 0.9122859186019967,
+        "mae_units": 127.5818625923707,
+        "rmsle": 0.3989910746486774
+      },
+      "baseline": {
+        "accuracy": 0.9190901517868042,
+        "mae_units": 117.6849594116211,
+        "rmsle": 0.43994900584220886
+      }
+    },
+    "total_week": {
+      "model": {
+        "accuracy": 0.9237301981275412,
+        "mae_units": 2107.7827108220363,
+        "rmsle": 0.0915952640666204
+      },
+      "baseline": {
+        "accuracy": 0.9387053847312927,
+        "mae_units": 1693.930908203125,
+        "rmsle": 0.08096262812614441
+      }
+    }
+  },
+  "bias_correction_factors": {
+    "model": 1.2795,
+    "baseline": 1.1456
+  },
+  "improvement_vs_baseline_rmsle": 0.0803,
+  "overall_uplift": {
+    "display": 0.1531,
+    "mailer": 0.8003,
+    "both": 0.9192
+  }
+}
